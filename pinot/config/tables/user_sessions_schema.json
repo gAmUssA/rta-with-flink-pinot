@@ -1,0 +1,39 @@
+{
+  "schemaName": "user_sessions",
+  "dimensionFieldSpecs": [
+    {
+      "name": "session_id",
+      "dataType": "STRING"
+    },
+    {
+      "name": "user_id",
+      "dataType": "STRING"
+    }
+  ],
+  "metricFieldSpecs": [
+    {
+      "name": "event_count",
+      "dataType": "LONG"
+    },
+    {
+      "name": "products_viewed",
+      "dataType": "LONG"
+    },
+    {
+      "name": "products_added_to_cart",
+      "dataType": "LONG"
+    },
+    {
+      "name": "purchases_made",
+      "dataType": "LONG"
+    }
+  ],
+  "dateTimeFieldSpecs": [
+    {
+      "name": "event_timestamp",
+      "dataType": "TIMESTAMP",
+      "format": "1:MILLISECONDS:EPOCH",
+      "granularity": "1:MILLISECONDS"
+    }
+  ]
+}

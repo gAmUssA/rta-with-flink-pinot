@@ -1,0 +1,41 @@
+{
+  "schemaName": "product_analytics",
+  "dimensionFieldSpecs": [
+    {
+      "name": "product_id",
+      "dataType": "STRING"
+    },
+    {
+      "name": "product_name",
+      "dataType": "STRING"
+    },
+    {
+      "name": "product_category",
+      "dataType": "STRING"
+    }
+  ],
+  "metricFieldSpecs": [
+    {
+      "name": "view_count",
+      "dataType": "LONG"
+    },
+    {
+      "name": "avg_price",
+      "dataType": "DOUBLE"
+    }
+  ],
+  "dateTimeFieldSpecs": [
+    {
+      "name": "window_start",
+      "dataType": "TIMESTAMP",
+      "format": "1:MILLISECONDS:EPOCH",
+      "granularity": "1:MILLISECONDS"
+    },
+    {
+      "name": "window_end",
+      "dataType": "TIMESTAMP",
+      "format": "1:MILLISECONDS:EPOCH",
+      "granularity": "1:MILLISECONDS"
+    }
+  ]
+}

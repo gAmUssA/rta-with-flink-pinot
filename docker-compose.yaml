@@ -45,7 +45,63 @@ services:
       - kafka
     environment:
       KAFKA_CLUSTERS_0_NAME: local
-      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+
+  pinot-controller:
+    image: apachepinot/pinot:0.12.1
+    command: "StartController -configFileName /config/controller.conf"
+    ports:
+      - "9000:9000"
+    environment:
+      JAVA_OPTS: "-Xmx512m -Xms512m -XX:MaxDirectMemorySize=1g"
+    volumes:
+      - ./pinot/config:/config
+      - ./pinot/data:/data
+
+  pinot-broker:
+    image: apachepinot/pinot:0.12.1
+    command: "StartBroker -configFileName /config/broker.conf"
+    depends_on:
+      - pinot-controller
+    ports:
+      - "8099:8099"
+    environment:
+      JAVA_OPTS: "-Xmx512m -Xms512m -XX:MaxDirectMemorySize=1g"
+    volumes:
+      - ./pinot/config:/config
+
+  pinot-server:
+    image: apachepinot/pinot:0.12.1
+    command: "StartServer -configFileName /config/server.conf"
+    depends_on:
+      - pinot-controller
+    ports:
+      - "8098:8098"
+    environment:
+      JAVA_OPTS: "-Xmx512m -Xms512m -XX:MaxDirectMemorySize=1g"
+    volumes:
+      - ./pinot/config:/config
+      - ./pinot/data:/data
+
+  pinot-zookeeper:
+    image: zookeeper:3.8.0
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
+  pinot-init:
+    image: curlimages/curl:latest
+    depends_on:
+      - pinot-controller
+      - pinot-broker
+      - pinot-server
+    volumes:
+      - ./pinot/config:/config
+      - ./pinot/init-pinot.sh:/init-pinot.sh
+    command: ["sh", "/init-pinot.sh"]
+    restart: on-failure
 
   jobmanager:
     hostname: jobmanager
