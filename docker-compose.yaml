@@ -48,7 +48,7 @@ services:
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
 
   pinot-controller:
-    image: apachepinot/pinot:0.12.1
+    image: apachepinot/pinot:1.2.0-21-openjdk
     command: "StartController -configFileName /config/controller.conf"
     ports:
       - "9000:9000"
@@ -59,7 +59,7 @@ services:
       - ./pinot/data:/data
 
   pinot-broker:
-    image: apachepinot/pinot:0.12.1
+    image: apachepinot/pinot:1.2.0-21-openjdk
     command: "StartBroker -configFileName /config/broker.conf"
     depends_on:
       - pinot-controller
@@ -71,7 +71,7 @@ services:
       - ./pinot/config:/config
 
   pinot-server:
-    image: apachepinot/pinot:0.12.1
+    image: apachepinot/pinot:1.2.0-21-openjdk
     command: "StartServer -configFileName /config/server.conf"
     depends_on:
       - pinot-controller
