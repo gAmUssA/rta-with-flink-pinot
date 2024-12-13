@@ -3,7 +3,7 @@
 name = "analytics-generator"
 version = "0.1.0"
 description = "Product analytics event generator for testing real-time analytics pipelines"
-authors = ["Your Name <your.email@example.com>"]
+authors = ["Viktor Gamov <viktor@gamov.io>"]
 
 [tool.poetry.dependencies]
 python = "^3.9"

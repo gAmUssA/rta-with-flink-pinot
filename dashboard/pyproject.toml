@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "analytics-dashboard"
+version = "0.1.0"
+description = "Product Analytics Dashboard using Streamlit and Apache Pinot"
+authors = ["Viktor Gamov <viktor@gamov.io>"]
+packages = [
+    { include = "analytics_dashboard", from = "src" }
+]
+
+[tool.poetry.dependencies]
+python = ">=3.9,<3.9.7 || >3.9.7,<4.0"
+streamlit = "^1.31.0"
+plotly = "^5.18.0"
+pandas = "^2.2.0"
+pinotdb = "^0.5.0"
+
+[tool.poetry.dev-dependencies]
+black = "^24.1.1"
+flake8 = "^7.0.0"

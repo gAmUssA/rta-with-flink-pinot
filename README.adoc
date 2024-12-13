@@ -3,194 +3,121 @@
 :toc-placement: preamble
 :source-highlighter: highlight.js
 
-A real-time analytics platform built with Apache Flink and Apache Pinot, designed to process and analyze user behavior events in real-time.
+A real-time analytics platform built with Apache Flink and Apache Pinot, designed to process and analyze product analytics data in real-time.
 
-== Architecture Overview
-
-The project consists of the following components:
-
-* Event Generator (Python)
-* Apache Kafka (Message Queue)
-* Apache Flink (Stream Processing)
-* Apache Pinot (Real-time OLAP)
-* Kafka UI (Monitoring)
-
-== Event Types
-
-The system processes various types of user behavior events:
-
-=== Base Event Fields
-All events share these common fields:
-
-[source,json]
-----
-{
-    "event_id": "UUID",
-    "event_timestamp": "ISO-8601 timestamp with timezone",
-    "user_id": "UUID",
-    "session_id": "UUID",
-    "device_type": "string",
-    "os": "string",
-    "browser": "string",
-    "location": "string"
-}
-----
-
-=== Specific Event Types
-
-==== Page View Event
-[source,json]
-----
-{
-    // ... base fields
-    "event_type": "page_view",
-    "page_url": "string",
-    "referrer_url": "string",
-    "time_spent": "double"
-}
-----
-
-==== Product View Event
-[source,json]
-----
-{
-    // ... base fields
-    "event_type": "product_view",
-    "product_id": "string",
-    "product_name": "string",
-    "product_category": "string",
-    "price": "double"
-}
-----
-
-==== Add to Cart Event
-[source,json]
-----
-{
-    // ... base fields
-    "event_type": "add_to_cart",
-    "product_id": "string",
-    "product_name": "string",
-    "product_category": "string",
-    "price": "double",
-    "quantity": "integer"
-}
-----
-
-==== Purchase Event
-[source,json]
-----
-{
-    // ... base fields
-    "event_type": "purchase",
-    "product_id": "string",
-    "product_name": "string",
-    "product_category": "string",
-    "price": "double",
-    "quantity": "integer",
-    "total_amount": "double",
-    "order_id": "string"
-}
-----
-
-== Analytics Queries
-
-=== Active Users
-Track the number of active users per minute:
-[source,sql]
-----
-SELECT window_start,
-    window_end,
-    COUNT(DISTINCT user_id) as active_users
-FROM TABLE(
-    TUMBLE(TABLE raw_events, DESCRIPTOR(event_timestamp), INTERVAL '1' MINUTE))
-GROUP BY window_start, window_end;
-----
-
-=== Product Analytics
-Track product views and purchases:
-[source,sql]
-----
-SELECT window_start,
-    window_end,
-    product_id,
-    product_name,
-    product_category,
-    COUNT(*) as view_count,
-    AVG(price) as avg_price
-FROM TABLE(
-    TUMBLE(TABLE raw_events, DESCRIPTOR(event_timestamp), INTERVAL '1' MINUTE))
-WHERE event_type = 'product_view'
-GROUP BY window_start,
-    window_end,
-    product_id,
-    product_name,
-    product_category;
-----
-
-=== Session Analytics
-Track user session metrics:
-[source,sql]
-----
-SELECT session_id,
-    user_id,
-    COUNT(*) as event_count,
-    COUNT(DISTINCT CASE WHEN event_type = 'product_view' THEN product_id END) as products_viewed,
-    COUNT(DISTINCT CASE WHEN event_type = 'add_to_cart' THEN product_id END) as products_added_to_cart,
-    COUNT(DISTINCT CASE WHEN event_type = 'purchase' THEN order_id END) as purchases_made
-FROM raw_events
-GROUP BY session_id, user_id;
-----
-
-== Setup and Running
+== Quick Start
 
 === Prerequisites
 * Docker and Docker Compose
-* Make (optional, for convenience commands)
+* Python 3.9+
+* Poetry (Python package manager)
+* Java 17+
+* Gradle
 
-=== Quick Start
+=== Running the Platform
 
-1. Clone the repository:
-[source,bash]
-----
-git clone <repository-url>
-cd rta-with-flink-pinot
-----
-
-2. Start the services:
+1. Start the infrastructure:
 [source,bash]
 ----
 docker compose up -d
 ----
 
-3. Access the interfaces:
-* Kafka UI: http://localhost:8080
-* Flink Dashboard: http://localhost:8081
+2. Start the event generator:
+[source,bash]
+----
+cd generator
+poetry install
+poetry run python -m analytics_generator
+----
+
+3. Launch the analytics dashboard:
+[source,bash]
+----
+cd dashboard
+poetry install
+poetry run streamlit run src/analytics_dashboard/app.py
+----
+
+== Architecture Overview
+
+The project consists of the following components:
+
+* Event Generator (Python) - Generates synthetic product analytics events
+* Apache Kafka 3.8.0 (Message Queue) - Running in KRaft mode without Zookeeper
+* Apache Flink (Stream Processing) - Processes and aggregates events
+* Apache Pinot (Real-time OLAP) - Stores and queries analytics data
+* Streamlit Dashboard - Visualizes product analytics metrics
+* Kafka UI (Monitoring) - Monitors Kafka topics and messages
+
+== Product Analytics Dashboard
+
+The dashboard provides real-time insights into product performance and revenue metrics:
+
+=== Features
+* Real-time metrics updates with configurable auto-refresh
+* Preset time range selections (24h, 7d, 30d, custom)
+* Product performance analysis
+* Revenue tracking and analysis
+* Conversion funnel visualization
+
+=== Key Metrics
+* View counts
+* Cart additions
+* Purchase conversions
+* Revenue tracking
+* Product category analysis
+
+=== Data Schema
+
+The `product_analytics` table in Pinot contains the following fields:
+
+==== Dimension Fields
+* `product_id` (string)
+* `product_name` (string)
+* `product_category` (string)
+
+==== Metric Fields
+* `view_count` (int)
+* `cart_adds` (int)
+* `purchases` (int)
+* `revenue` (double)
+
+==== Time Field
+* `update_time` (timestamp in EPOCH milliseconds)
 
 == Development
 
-=== Event Generator
-The event generator is a Python application that simulates user behavior by generating various types of events. It uses:
+=== Project Structure
+[source]
+----
+.
+├── dashboard/           # Streamlit analytics dashboard
+├── generator/           # Event generator
+├── flink/              # Flink processing jobs
+├── pinot/              # Pinot schema and table configs
+└── docker-compose.yml  # Infrastructure setup
+----
 
-* Pydantic for data modeling
-* Faker for generating realistic test data
-* Kafka-Python for producing events to Kafka
+=== Python Projects
+Both Python projects (dashboard and generator) use Poetry for dependency management:
 
-=== Flink SQL
-The analytics queries are implemented using Flink SQL, which processes the events in real-time and outputs results to various Kafka topics.
+[source,bash]
+----
+poetry install  # Install dependencies
+poetry run     # Run Python scripts
+----
 
-== Monitoring
-
-=== Kafka UI
-Monitor Kafka topics, consumers, and message flow through the Kafka UI interface.
-
-=== Flink Dashboard
-Monitor Flink jobs, parallelism, and task managers through the Flink Dashboard.
-
-== Contributing
-
+=== Contributing
 1. Fork the repository
-2. Create your feature branch
+2. Create a feature branch
 3. Commit your changes
 4. Push to the branch
-5. Create a new Pull Request
+5. Create a Pull Request
+
+== License
+
+This project is licensed under the Apache License 2.0 - see the LICENSE file for details.
+
+== Contact
+
+For questions and support, please open an issue on GitHub: https://github.com/gAmUssA/rta-with-flink-pinot/issues
