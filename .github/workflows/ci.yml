@@ -9,8 +9,19 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    container:
+      image: catthehacker/ubuntu:act-latest
+      options: --privileged
     steps:
       - uses: actions/checkout@v4
+      
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get install -y docker.io docker-compose make curl jq
+      
+      - name: Start Docker service
+        run: service docker start
       
       - name: Validate Docker Compose
         run: docker-compose config
