@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Validate Docker Compose
+        run: docker-compose config
+      
+      - name: Start services and validate
+        run: |
+          make start
+          make validate-all
+      
+      - name: Show component URLs
+        run: make urls
+      
+      - name: Initialize Pinot
+        run: make pinot-init
+      
+      - name: Validate Pinot setup
+        run: make pinot-validate
+      
+      - name: Debug if needed
+        if: failure()
+        run: |
+          make debug-network
+          make debug-kafka
+          make debug-flink
+      
+      - name: Stop containers
+        if: always()
+        run: make stop
