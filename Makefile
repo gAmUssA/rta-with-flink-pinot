@@ -72,18 +72,18 @@ validate-all: check-kafka check-kafka-ui check-flink pinot-validate create-topic
 
 pinot-init: ## Initialize Pinot schemas and tables
 	@echo "Initializing Pinot schemas and tables..."
-	@docker-compose up pinot-init
+	$(DOCKER_COMPOSE) up pinot-init
 
 pinot-validate: ## Validate Pinot setup
 	@echo "Validating Pinot setup..."
-	@docker-compose exec pinot-controller curl -s http://localhost:9000/health || (echo "Pinot controller is not running" && exit 1)
+	$(DOCKER_COMPOSE) exec pinot-controller curl -s http://localhost:9000/health || (echo "Pinot controller is not running" && exit 1)
 	@echo "Controller: OK"
-	@docker-compose exec pinot-broker curl -s http://localhost:8099/health || (echo "Pinot broker is not running" && exit 1)
+	$(DOCKER_COMPOSE) exec pinot-broker curl -s http://localhost:8099/health || (echo "Pinot broker is not running" && exit 1)
 	@echo "Broker: OK"
-	@docker-compose exec pinot-server curl -s http://localhost:8098/health || (echo "Pinot server is not running" && exit 1)
+	$(DOCKER_COMPOSE) exec pinot-server curl -s http://localhost:8098/health || (echo "Pinot server is not running" && exit 1)
 	@echo "Server: OK"
 	@echo "Checking tables..."
-	@docker-compose exec pinot-controller curl -s http://localhost:9000/tables | jq -r '.tables[]' || (echo "Failed to get tables" && exit 1)
+	$(DOCKER_COMPOSE) exec pinot-controller curl -s http://localhost:9000/tables | jq -r '.tables[]' || (echo "Failed to get tables" && exit 1)
 	@echo "Tables: OK"
 	@echo "Pinot validation complete "
 
