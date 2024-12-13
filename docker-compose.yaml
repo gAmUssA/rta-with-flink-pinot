@@ -48,6 +48,60 @@ services:
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
 
+  jobmanager:
+    image: apache/flink:1.18.0
+    ports:
+      - "8081:8081"
+    command: jobmanager
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager
+        state.backend: filesystem
+        state.checkpoints.dir: file:///tmp/flink-checkpoints
+        heartbeat.interval: 1000
+        heartbeat.timeout: 5000
+        rest.flamegraph.enabled: true
+        web.backpressure.refresh-interval: 10000
+    volumes:
+      - /tmp/flink-checkpoints:/tmp/flink-checkpoints
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/overview"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  taskmanager:
+    image: apache/flink:1.18.0
+    depends_on:
+      jobmanager:
+        condition: service_healthy
+    command: taskmanager
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager
+        taskmanager.numberOfTaskSlots: 2
+        state.backend: filesystem
+        state.checkpoints.dir: file:///tmp/flink-checkpoints
+        heartbeat.interval: 1000
+        heartbeat.timeout: 5000
+    volumes:
+      - /tmp/flink-checkpoints:/tmp/flink-checkpoints
+
+  sql-client:
+    image: apache/flink:1.18.0
+    command: bin/sql-client.sh
+    depends_on:
+      jobmanager:
+        condition: service_healthy
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager
+        rest.address: jobmanager
+
 networks:
   default:
     name: analytics-network
