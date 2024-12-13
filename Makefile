@@ -1,28 +1,9 @@
 include make/common.mk
 
-# Colors
-BLUE := \033[34m
-GREEN := \033[32m
-RED := \033[31m
-YELLOW := \033[33m
-RESET := \033[0m
-BOLD := \033[1m
-
-# Emojis
-ROCKET := 🚀
-CHECK := ✅
-WARN := ⚠️
-ERROR := ❌
-KAFKA := 📬
-FLINK := 🌊
-UI := 🖥️
-CLEANUP := 🧹
-INFO := ℹ️
-
-.PHONY: start stop status check-kafka check-kafka-ui check-flink validate-all urls
+.PHONY: start stop status check-kafka check-kafka-ui check-flink validate-all urls create-topics debug-network debug-shell debug-kafka debug-flink debug-all
 
 # Default target
-all: start validate-all
+all: start validate-all urls
 
 # Start all services
 start:
@@ -30,7 +11,8 @@ start:
 	$(call MSG_CLEANUP,Cleaning up existing containers...)
 	$(DOCKER_COMPOSE) down --volumes --remove-orphans
 	$(call MSG_START,Launching containers...)
-	$(DOCKER_COMPOSE) up -d
+	$(DOCKER_COMPOSE) up -d --build
+	$(call MSG_SUCCESS,All services started)
 
 # Stop all services
 stop:
@@ -65,6 +47,15 @@ check-flink:
 	echo ""; \
 	echo "$(GREEN)$(CHECK) Flink is up and running (version: $$FLINK_VERSION)$(RESET)"
 
+# Create Kafka topics for Flink SQL
+create-topics:
+	$(call MSG_INFO,Creating Kafka topics...)
+	$(DOCKER_COMPOSE) exec kafka /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --topic raw-events --bootstrap-server kafka:29092 --partitions 1 --replication-factor 1
+	$(DOCKER_COMPOSE) exec kafka /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --topic active-users-per-minute --bootstrap-server kafka:29092 --partitions 1 --replication-factor 1
+	$(DOCKER_COMPOSE) exec kafka /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --topic product-analytics --bootstrap-server kafka:29092 --partitions 1 --replication-factor 1
+	$(DOCKER_COMPOSE) exec kafka /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --topic user-session-analytics --bootstrap-server kafka:29092 --partitions 1 --replication-factor 1
+	$(call MSG_SUCCESS,Kafka topics created successfully)
+
 # Print component URLs
 urls:
 	@echo "$(INFO) $(BOLD)Component URLs:$(RESET)"
@@ -73,5 +64,34 @@ urls:
 	@echo "$(FLINK) $(BOLD)Flink Dashboard:$(RESET) $(BLUE)http://localhost:8081$(RESET)"
 
 # Validate all components are running
-validate-all: check-kafka check-kafka-ui check-flink
+validate-all: check-kafka check-kafka-ui check-flink create-topics
 	@echo "$(GREEN)$(BOLD)$(ROCKET) All components are up and running!$(RESET)"
+
+# Debug network connectivity
+debug-network:
+	@$(call MSG_INFO,Testing network connectivity...)
+	@echo "$(INFO) Testing Kafka connections:"
+	@$(DOCKER_COMPOSE) exec debug nc -zv kafka 9092 || true
+	@$(DOCKER_COMPOSE) exec debug nc -zv kafka 29092 || true
+	@$(DOCKER_COMPOSE) exec debug nc -zv kafka 9093 || true
+	@echo "\n$(INFO) Testing Flink JobManager connection:"
+	@$(DOCKER_COMPOSE) exec debug nc -zv jobmanager 8081 || true
+
+# Interactive debug shell
+debug-shell:
+	@$(call MSG_INFO,Starting debug shell...)
+	@$(DOCKER_COMPOSE) exec debug bash
+
+# Test Kafka connectivity with telnet
+debug-kafka:
+	@$(call MSG_INFO,Testing Kafka with telnet...)
+	@$(DOCKER_COMPOSE) exec debug timeout 2 telnet kafka 9092 || true
+
+# Test Flink UI
+debug-flink:
+	@$(call MSG_INFO,Testing Flink UI...)
+	@$(DOCKER_COMPOSE) exec debug curl -I http://jobmanager:8081/config || true
+
+# Run all debug checks
+debug-all: debug-network debug-kafka debug-flink
+	@$(call MSG_SUCCESS,All debug checks completed)

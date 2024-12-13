@@ -39,7 +39,7 @@ class EventGenerator:
             bootstrap_servers=bootstrap_servers,
             value_serializer=lambda x: json.dumps(
                 x,
-                default=lambda x: x.isoformat() if isinstance(x, datetime) else str(x),
+                default=lambda obj: obj.strftime('%Y-%m-%dT%H:%M:%S.%f%z') if isinstance(obj, datetime) else str(obj),
             ).encode("utf-8"),
         )
         self.products_by_category = self._generate_product_catalog()

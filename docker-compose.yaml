@@ -1,28 +1,27 @@
-# docker-compose.yml
-version: "3.8"
-
 services:
   kafka:
-    image: apache/kafka:latest
+    image: apache/kafka:3.8.0
+    hostname: kafka
     ports:
       - "9092:9092"
-    environment:
-      CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
-      KAFKA_NODE_ID: 1
-      KAFKA_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://0.0.0.0:9092,CONTROLLER://kafka:29093
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:29093
-      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_PROCESS_ROLES: broker,controller
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      - "29092:29092"
     healthcheck:
       test: [ "CMD", "nc", "-z", "localhost", "9092" ]
-      interval: 30s
+      interval: 5s
       timeout: 10s
-      retries: 3
+      retries: 10
+    environment:
+      - PATH=/opt/kafka/bin:$PATH
+      # KRaft settings
+      - KAFKA_NODE_ID=0
+      - KAFKA_PROCESS_ROLES=controller,broker
+      - KAFKA_CONTROLLER_QUORUM_VOTERS=0@kafka:9093
+      # Listeners
+      - KAFKA_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093,PLAINTEXT_HOST://:29092
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      - KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT
 
   generator:
     build:
@@ -32,7 +31,7 @@ services:
       kafka:
         condition: service_healthy
     environment:
-      KAFKA_BOOTSTRAP_SERVERS: "kafka:29092"
+      KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
       KAFKA_TOPIC: "raw-events"
     volumes:
       - ./generator:/app
@@ -46,9 +45,10 @@ services:
       - kafka
     environment:
       KAFKA_CLUSTERS_0_NAME: local
-      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
 
   jobmanager:
+    hostname: jobmanager
     build:
       context: ./flink
       dockerfile: Dockerfile
@@ -59,20 +59,18 @@ services:
       - |
         FLINK_PROPERTIES=
         jobmanager.rpc.address: jobmanager
+        jobmanager.rest.address: jobmanager
         state.backend: filesystem
         state.checkpoints.dir: file:///tmp/flink-checkpoints
         heartbeat.interval: 1000
         heartbeat.timeout: 5000
-        rest.flamegraph.enabled: true
-        web.backpressure.refresh-interval: 10000
     volumes:
-      - /tmp/flink-checkpoints:/tmp/flink-checkpoints
+      - ./flink/sql:/opt/flink/sql
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8081/overview"]
-      interval: 30s
+      test: [ "CMD", "curl", "-f", "http://localhost:8081/" ]
+      interval: 5s
       timeout: 10s
-      retries: 3
-      start_period: 30s
+      retries: 10
 
   taskmanager:
     build:
@@ -86,27 +84,42 @@ services:
       - |
         FLINK_PROPERTIES=
         jobmanager.rpc.address: jobmanager
-        taskmanager.numberOfTaskSlots: 2
+        taskmanager.numberOfTaskSlots: 16
         state.backend: filesystem
         state.checkpoints.dir: file:///tmp/flink-checkpoints
         heartbeat.interval: 1000
         heartbeat.timeout: 5000
     volumes:
-      - /tmp/flink-checkpoints:/tmp/flink-checkpoints
+      - ./flink/sql:/opt/flink/sql
 
   sql-client:
     build:
       context: ./flink
       dockerfile: Dockerfile
     command: bin/sql-client.sh
-    depends_on:
-      jobmanager:
-        condition: service_healthy
+    #command: bin/sql-client.sh -f /opt/flink/sql/flink.sql
     environment:
       - |
         FLINK_PROPERTIES=
         jobmanager.rpc.address: jobmanager
         rest.address: jobmanager
+    depends_on:
+      jobmanager:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    volumes:
+      - ./flink/sql:/opt/flink/sql
+
+  debug:
+    image: nicolaka/netshoot
+    container_name: network-debug
+    command: sleep infinity
+    depends_on:
+      kafka:
+        condition: service_healthy
+      jobmanager:
+        condition: service_healthy
 
 networks:
   default:
