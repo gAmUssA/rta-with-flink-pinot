@@ -80,7 +80,7 @@ pinot-validate: ## Validate Pinot setup
 	@echo "Controller: OK"
 	$(DOCKER_COMPOSE) exec pinot-broker curl -s http://localhost:8099/health || (echo "Pinot broker is not running" && exit 1)
 	@echo "Broker: OK"
-	$(DOCKER_COMPOSE) exec pinot-server curl -s http://localhost:8098/health || (echo "Pinot server is not running" && exit 1)
+	$(DOCKER_COMPOSE) exec pinot-server curl -s http://localhost:8097/health/readiness || (echo "Pinot server is not running" && exit 1)
 	@echo "Server: OK"
 	@echo "Checking tables..."
 	$(DOCKER_COMPOSE) exec pinot-controller curl -s http://localhost:9000/tables | jq -r '.tables[]' || (echo "Failed to get tables" && exit 1)
