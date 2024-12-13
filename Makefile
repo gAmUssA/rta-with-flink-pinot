@@ -19,7 +19,7 @@ UI := 🖥️
 CLEANUP := 🧹
 INFO := ℹ️
 
-.PHONY: start stop status check-kafka check-kafka-ui check-flink validate-all
+.PHONY: start stop status check-kafka check-kafka-ui check-flink validate-all urls
 
 # Default target
 all: start validate-all
@@ -60,10 +60,17 @@ check-kafka-ui:
 # Check Flink health
 check-flink:
 	$(call MSG_INFO,Checking Flink...)
-	@$(TIMEOUT) bash -c 'until $(CURL) -f http://localhost:8081/config | grep -q "flink-version"; do sleep 1; echo -n "."; done' || ($(call MSG_ERROR,Failed to connect to Flink) && exit 1)
-	@FLINK_VERSION=$$($(CURL) http://localhost:8081/config | jq -r '.["flink-version"]'); \
+	@$(TIMEOUT) bash -c 'until $(CURL) -f http://localhost:8081/config > /dev/null 2>&1; do sleep 1; printf "."; done' || ($(call MSG_ERROR,Failed to connect to Flink) && exit 1)
+	@FLINK_VERSION=$$($(CURL) -s http://localhost:8081/config | grep -o '"flink-version":"[^"]*' | cut -d'"' -f4); \
 	echo ""; \
-	$(call MSG_SUCCESS,Flink is up and running \(version: $$FLINK_VERSION\))
+	echo "$(GREEN)$(CHECK) Flink is up and running (version: $$FLINK_VERSION)$(RESET)"
+
+# Print component URLs
+urls:
+	@echo "$(INFO) $(BOLD)Component URLs:$(RESET)"
+	@echo "$(KAFKA) $(BOLD)Kafka UI:$(RESET)        $(BLUE)http://localhost:8080$(RESET)"
+	@echo "$(KAFKA) $(BOLD)Bootstrap Servers:$(RESET) $(BLUE)localhost:9092$(RESET) (external), $(BLUE)kafka:29092$(RESET) (internal)"
+	@echo "$(FLINK) $(BOLD)Flink Dashboard:$(RESET) $(BLUE)http://localhost:8081$(RESET)"
 
 # Validate all components are running
 validate-all: check-kafka check-kafka-ui check-flink

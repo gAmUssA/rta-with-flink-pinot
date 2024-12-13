@@ -31,3 +31,6 @@ coverage:
 	$(call MSG_INFO,Generating coverage report...)
 	poetry run pytest --cov=src --cov-report=term-missing tests
 	$(call MSG_SUCCESS,Coverage report generated)
+
+pre-commit:
+	poetry run pre-commit run --all-files

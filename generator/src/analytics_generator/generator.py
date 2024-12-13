@@ -3,13 +3,13 @@ import logging
 import os
 import random
 import time
-from typing import Dict, List
 from datetime import datetime
+from typing import Dict, List
 from uuid import UUID
-from pydantic import BaseModel
 
 from faker import Faker
 from kafka import KafkaProducer
+from pydantic import BaseModel
 
 from analytics_generator.models import (
     AddToCartEvent,
@@ -21,6 +21,7 @@ from analytics_generator.models import (
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 fake = Faker()
+
 
 class EventGenerator:
     """Generates and sends analytics events to Kafka."""
@@ -36,7 +37,10 @@ class EventGenerator:
         self.topic = topic
         self.producer = KafkaProducer(
             bootstrap_servers=bootstrap_servers,
-            value_serializer=lambda x: json.dumps(x, default=lambda x: x.isoformat() if isinstance(x, datetime) else str(x)).encode("utf-8"),
+            value_serializer=lambda x: json.dumps(
+                x,
+                default=lambda x: x.isoformat() if isinstance(x, datetime) else str(x),
+            ).encode("utf-8"),
         )
         self.products_by_category = self._generate_product_catalog()
 

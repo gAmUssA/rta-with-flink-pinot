@@ -37,5 +37,3 @@ multi_line_output = 3
 python_version = "3.9"
 strict = true
 ignore_missing_imports = true
-
-
