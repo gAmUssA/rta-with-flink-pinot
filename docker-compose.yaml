@@ -6,7 +6,7 @@ services:
       - "9092:9092"
       - "29092:29092"
     healthcheck:
-      test: [ "CMD", "nc", "-z", "localhost", "9092" ]
+      test: ["CMD-SHELL", "kafka-topics.sh --bootstrap-server kafka:9092 --list"]
       interval: 5s
       timeout: 10s
       retries: 10
@@ -45,58 +45,87 @@ services:
       - kafka
     environment:
       KAFKA_CLUSTERS_0_NAME: local
-      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
 
+  pinot-zookeeper:
+    image: zookeeper:latest
+    container_name: pinot-zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+  
   pinot-controller:
     image: apachepinot/pinot:1.2.0-21-openjdk
-    command: "StartController -configFileName /config/controller.conf"
+    command: "StartController -zkAddress pinot-zookeeper:2181"
+    container_name: pinot-controller
+    hostname: pinot-controller
+    restart: unless-stopped
     ports:
       - "9000:9000"
     environment:
-      JAVA_OPTS: "-Xmx512m -Xms512m -XX:MaxDirectMemorySize=1g"
+      JAVA_OPTS: "-Dplugins.dir=/opt/pinot/plugins -Xms1G -Xmx4G -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Xlog:gc:gc-pinot-controller.log"
+    depends_on:
+      - pinot-zookeeper
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f http://localhost:9000/health || exit 1" ]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
     volumes:
       - ./pinot/config:/config
       - ./pinot/data:/data
 
   pinot-broker:
     image: apachepinot/pinot:1.2.0-21-openjdk
-    command: "StartBroker -configFileName /config/broker.conf"
-    depends_on:
-      - pinot-controller
+    command: "StartBroker -zkAddress pinot-zookeeper:2181"
+    restart: unless-stopped
+    container_name: "pinot-broker"
     ports:
       - "8099:8099"
     environment:
-      JAVA_OPTS: "-Xmx512m -Xms512m -XX:MaxDirectMemorySize=1g"
-    volumes:
-      - ./pinot/config:/config
+      JAVA_OPTS: "-Dplugins.dir=/opt/pinot/plugins -Xms4G -Xmx4G -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Xlog:gc:gc-pinot-broker.log"
+    depends_on:
+      pinot-controller:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f http://localhost:8099/health || exit 1" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
 
   pinot-server:
     image: apachepinot/pinot:1.2.0-21-openjdk
-    command: "StartServer -configFileName /config/server.conf"
-    depends_on:
-      - pinot-controller
+    command: "StartServer -zkAddress pinot-zookeeper:2181"
+    restart: unless-stopped
+    container_name: "pinot-server"
     ports:
+      - "8097:8097"
       - "8098:8098"
     environment:
-      JAVA_OPTS: "-Xmx512m -Xms512m -XX:MaxDirectMemorySize=1g"
-    volumes:
-      - ./pinot/config:/config
-      - ./pinot/data:/data
-
-  pinot-zookeeper:
-    image: zookeeper:3.8.0
-    ports:
-      - "2181:2181"
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
+      JAVA_OPTS: "-Dplugins.dir=/opt/pinot/plugins -Xms4G -Xmx16G -XX:+UseG1GC -XX:MaxGCPauseMillis=200  -Xlog:gc:gc-pinot-server.log"
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f http://localhost:8097/health/readiness || exit 1" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
+    depends_on:
+      pinot-controller:
+        condition: service_healthy
 
   pinot-init:
     image: curlimages/curl:latest
     depends_on:
-      - pinot-controller
-      - pinot-broker
-      - pinot-server
+      pinot-controller:
+        condition: service_healthy
+      pinot-broker:
+        condition: service_healthy
+      pinot-server:
+        condition: service_healthy
     volumes:
       - ./pinot/config:/config
       - ./pinot/init-pinot.sh:/init-pinot.sh
@@ -152,8 +181,8 @@ services:
     build:
       context: ./flink
       dockerfile: Dockerfile
-    command: bin/sql-client.sh
-    #command: bin/sql-client.sh -f /opt/flink/sql/flink.sql
+    #command: bin/sql-client.sh
+    command: bin/sql-client.sh -f /opt/flink/sql/flink.sql
     environment:
       - |
         FLINK_PROPERTIES=

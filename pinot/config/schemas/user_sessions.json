@@ -8,32 +8,40 @@
     {
       "name": "user_id",
       "dataType": "STRING"
+    },
+    {
+      "name": "session_end",
+      "dataType": "TIMESTAMP"
     }
   ],
   "metricFieldSpecs": [
     {
-      "name": "event_count",
+      "name": "page_views",
       "dataType": "LONG"
     },
     {
-      "name": "products_viewed",
+      "name": "product_views",
       "dataType": "LONG"
     },
     {
-      "name": "products_added_to_cart",
+      "name": "cart_adds",
       "dataType": "LONG"
     },
     {
-      "name": "purchases_made",
+      "name": "purchases",
       "dataType": "LONG"
+    },
+    {
+      "name": "total_spent",
+      "dataType": "DOUBLE"
     }
   ],
-  "dateTimeFieldSpecs": [
-    {
-      "name": "event_timestamp",
+  "timeFieldSpec": {
+    "incomingGranularitySpec": {
+      "name": "session_start",
       "dataType": "TIMESTAMP",
-      "format": "1:MILLISECONDS:EPOCH",
-      "granularity": "1:MILLISECONDS"
+      "timeFormat": "EPOCH",
+      "timeType": "MILLISECONDS"
     }
-  ]
+  }
 }

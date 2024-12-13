@@ -1,0 +1,23 @@
+{
+  "schemaName": "active_users",
+  "dimensionFieldSpecs": [
+    {
+      "name": "window_end",
+      "dataType": "TIMESTAMP"
+    }
+  ],
+  "metricFieldSpecs": [
+    {
+      "name": "active_users",
+      "dataType": "LONG"
+    }
+  ],
+  "timeFieldSpec": {
+    "incomingGranularitySpec": {
+      "name": "window_start",
+      "dataType": "TIMESTAMP",
+      "timeFormat": "EPOCH",
+      "timeType": "MILLISECONDS"
+    }
+  }
+}

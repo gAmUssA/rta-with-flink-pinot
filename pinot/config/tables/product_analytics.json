@@ -2,12 +2,16 @@
   "tableName": "product_analytics",
   "tableType": "REALTIME",
   "segmentsConfig": {
-    "timeColumnName": "window_start",
+    "timeColumnName": "update_time",
     "timeType": "MILLISECONDS",
     "schemaName": "product_analytics",
     "replicasPerPartition": "1"
   },
-  "tenants": {},
+  "tenants": {
+    "broker": "DefaultTenant",
+    "server": "DefaultTenant",
+    "tagOverrideConfig": {}
+  },
   "tableIndexConfig": {
     "loadMode": "MMAP",
     "streamConfigs": {

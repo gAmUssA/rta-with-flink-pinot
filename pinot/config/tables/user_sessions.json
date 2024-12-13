@@ -2,18 +2,22 @@
   "tableName": "user_sessions",
   "tableType": "REALTIME",
   "segmentsConfig": {
-    "timeColumnName": "event_timestamp",
+    "timeColumnName": "session_start",
     "timeType": "MILLISECONDS",
     "schemaName": "user_sessions",
     "replicasPerPartition": "1"
   },
-  "tenants": {},
+  "tenants": {
+    "broker": "DefaultTenant",
+    "server": "DefaultTenant",
+    "tagOverrideConfig": {}
+  },
   "tableIndexConfig": {
     "loadMode": "MMAP",
     "streamConfigs": {
       "streamType": "kafka",
       "stream.kafka.consumer.type": "lowlevel",
-      "stream.kafka.topic.name": "user-sessions",
+      "stream.kafka.topic.name": "user-session-analytics",
       "stream.kafka.decoder.class.name": "org.apache.pinot.plugin.stream.kafka.KafkaJSONMessageDecoder",
       "stream.kafka.consumer.factory.class.name": "org.apache.pinot.plugin.stream.kafka20.KafkaConsumerFactory",
       "stream.kafka.broker.list": "kafka:9092",

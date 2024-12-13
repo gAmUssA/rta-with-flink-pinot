@@ -20,22 +20,24 @@
       "dataType": "LONG"
     },
     {
-      "name": "avg_price",
+      "name": "cart_adds",
+      "dataType": "LONG"
+    },
+    {
+      "name": "purchases",
+      "dataType": "LONG"
+    },
+    {
+      "name": "revenue",
       "dataType": "DOUBLE"
     }
   ],
-  "dateTimeFieldSpecs": [
-    {
-      "name": "window_start",
+  "timeFieldSpec": {
+    "incomingGranularitySpec": {
+      "name": "update_time",
       "dataType": "TIMESTAMP",
-      "format": "1:MILLISECONDS:EPOCH",
-      "granularity": "1:MILLISECONDS"
-    },
-    {
-      "name": "window_end",
-      "dataType": "TIMESTAMP",
-      "format": "1:MILLISECONDS:EPOCH",
-      "granularity": "1:MILLISECONDS"
+      "timeFormat": "EPOCH",
+      "timeType": "MILLISECONDS"
     }
-  ]
+  }
 }

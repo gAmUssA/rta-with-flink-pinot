@@ -7,7 +7,11 @@
     "schemaName": "active_users",
     "replicasPerPartition": "1"
   },
-  "tenants": {},
+  "tenants": {
+    "broker": "DefaultTenant",
+    "server": "DefaultTenant",
+    "tagOverrideConfig": {}
+  },
   "tableIndexConfig": {
     "loadMode": "MMAP",
     "streamConfigs": {

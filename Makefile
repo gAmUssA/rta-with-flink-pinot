@@ -1,6 +1,6 @@
 include make/common.mk
 
-.PHONY: start stop status check-kafka check-kafka-ui check-flink validate-all urls create-topics debug-network debug-shell debug-kafka debug-flink debug-all
+.PHONY: start stop status check-kafka check-kafka-ui check-flink validate-all urls create-topics debug-network debug-shell debug-kafka debug-flink debug-all pinot-init pinot-validate
 
 # Default target
 all: start validate-all urls
@@ -64,8 +64,28 @@ urls:
 	@echo "$(FLINK) $(BOLD)Flink Dashboard:$(RESET) $(BLUE)http://localhost:8081$(RESET)"
 
 # Validate all components are running
-validate-all: check-kafka check-kafka-ui check-flink create-topics
+validate-all: check-kafka check-kafka-ui check-flink pinot-validate create-topics
 	@echo "$(GREEN)$(BOLD)$(ROCKET) All components are up and running!$(RESET)"
+
+# Pinot targets
+.PHONY: pinot-init pinot-validate
+
+pinot-init: ## Initialize Pinot schemas and tables
+	@echo "Initializing Pinot schemas and tables..."
+	@docker-compose up pinot-init
+
+pinot-validate: ## Validate Pinot setup
+	@echo "Validating Pinot setup..."
+	@docker-compose exec pinot-controller curl -s http://localhost:9000/health || (echo "Pinot controller is not running" && exit 1)
+	@echo "Controller: OK"
+	@docker-compose exec pinot-broker curl -s http://localhost:8099/health || (echo "Pinot broker is not running" && exit 1)
+	@echo "Broker: OK"
+	@docker-compose exec pinot-server curl -s http://localhost:8098/health || (echo "Pinot server is not running" && exit 1)
+	@echo "Server: OK"
+	@echo "Checking tables..."
+	@docker-compose exec pinot-controller curl -s http://localhost:9000/tables | jq -r '.tables[]' || (echo "Failed to get tables" && exit 1)
+	@echo "Tables: OK"
+	@echo "Pinot validation complete "
 
 # Debug network connectivity
 debug-network:
