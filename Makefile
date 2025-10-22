@@ -58,10 +58,13 @@ create-topics:
 
 # Print component URLs
 urls:
-	@echo "$(INFO) $(BOLD)Component URLs:$(RESET)"
-	@echo "$(KAFKA) $(BOLD)Kafka UI:$(RESET)        $(BLUE)http://localhost:8080$(RESET)"
-	@echo "$(KAFKA) $(BOLD)Bootstrap Servers:$(RESET) $(BLUE)localhost:9092$(RESET) (external), $(BLUE)kafka:29092$(RESET) (internal)"
-	@echo "$(FLINK) $(BOLD)Flink Dashboard:$(RESET) $(BLUE)http://localhost:8081$(RESET)"
+	@echo "$(INFO) $(BOLD)Component URLs$(RESET)"
+	@echo "$(INFO) $(BOLD)==============$(RESET)"
+	@echo "$(KAFKA) $(BOLD)Kafka UI:$(RESET)		$(BLUE)http://localhost:8080$(RESET)"
+	@echo "$(KAFKA) $(BOLD)Bootstrap Servers:$(RESET)	$(BLUE)localhost:9092$(RESET) (external), $(BLUE)kafka:29092$(RESET) (internal)"
+	@echo "$(FLINK) $(BOLD)Flink Dashboard:$(RESET)	$(BLUE)http://localhost:8081$(RESET)"
+	@echo "$(PINOT) $(BOLD)Pinot Console:$(RESET)	$(BLUE)http://localhost:9000$(RESET)"
+	@echo "$(PINOT) $(BOLD)Pinot Broker SQL:$(RESET)	$(BLUE)http://localhost:8099/query/sql$(RESET)"
 
 # Validate all components are running
 validate-all: check-kafka check-kafka-ui check-flink pinot-validate create-topics

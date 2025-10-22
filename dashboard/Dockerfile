@@ -17,8 +17,11 @@ COPY pyproject.toml poetry.lock ./
 # Configure poetry to not create a virtual environment
 RUN poetry config virtualenvs.create false
 
+# Refresh lock to match pyproject changes (allow Poetry default resolution)
+RUN poetry lock
+
 # Install dependencies
-RUN poetry install --no-dev --no-interaction --no-ansi
+RUN poetry install --without dev --no-interaction --no-ansi
 
 # Expose Streamlit port
 EXPOSE 8501

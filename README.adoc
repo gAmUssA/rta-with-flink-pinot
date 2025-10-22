@@ -49,6 +49,62 @@ The project consists of the following components:
 * Streamlit Dashboard - Visualizes product analytics metrics
 * Kafka UI (Monitoring) - Monitors Kafka topics and messages
 
+=== Architecture Diagram
+
+[mermaid]
+----
+graph LR
+    GEN[Event Generator Python]
+    RAW[Kafka topic: raw-events]
+    PA[Kafka topic: product-analytics]
+    AUPM[Kafka topic: active-users-per-minute]
+    USA[Kafka topic: user-session-analytics]
+    FLINK[Flink SQL Job aggregations & upserts]
+    CTRL[Pinot Controller :9000]
+    BRK[Pinot Broker :8099]
+    SRV[Pinot Server :8097]
+    UI[Streamlit Dashboard]
+
+    GEN -->|JSON events| RAW
+    RAW --> FLINK
+    FLINK -->|upsert| PA
+    FLINK -->|upsert| AUPM
+    FLINK -->|upsert| USA
+
+    PA --> SRV
+    AUPM --> SRV
+    USA --> SRV
+
+    UI -->|SQL queries| BRK
+    BRK --> SRV
+    CTRL --> BRK
+    CTRL --> SRV
+
+    KafkaUI[Kafka UI :8080] -. monitors .-> RAW
+    FlinkUI[Flink Dashboard :8081] -. monitors .-> FLINK
+----
+
+=== End-to-End Data Flow
+
+[mermaid]
+----
+sequenceDiagram
+    autonumber
+    participant Gen as Event Generator
+    participant Kraw as Kafka (raw-events)
+    participant Flink as Flink SQL Job
+    participant Kagg as Kafka (upsert topics)
+    participant Pinot as Pinot (Server/Broker)
+    participant Dash as Streamlit Dashboard
+
+    Gen->>Kraw: Produce JSON events
+    Flink-->>Kraw: Consume events (earliest-offset, JSON)
+    Flink->>Kagg: Upsert aggregates product-analytics, active-users-per-minute, user-session-analytics
+    Kagg->>Pinot: Real-time ingestion (servers consume topics)
+    Dash->>Pinot: SQL queries to Broker (:8099)
+    Pinot-->>Dash: Result rows for charts/metrics
+----
+
 == Product Analytics Dashboard
 
 The dashboard provides real-time insights into product performance and revenue metrics:

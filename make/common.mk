@@ -14,6 +14,7 @@ ERROR := ❌
 KAFKA := 📬
 FLINK := 🌊
 UI := 🖥️
+PINOT := 🍷
 CLEANUP := 🧹
 INFO := ℹ️
 
